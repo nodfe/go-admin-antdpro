@@ -1,5 +1,5 @@
-import { addRule, removeRule, rule, updateRule } from '@/services/ant-design-pro/api';
-import { getSysUserList } from '@/services/ant-design-pro/system/user';
+import { removeRule, updateRule } from '@/services/ant-design-pro/api';
+import { addSysUser, getSysUserList } from '@/services/ant-design-pro/system/user';
 import type { UserListItem } from '@/types';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
@@ -8,11 +8,10 @@ import {
   ModalForm,
   ProDescriptions,
   ProFormText,
-  ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
 import { FormattedMessage, useIntl } from '@umijs/max';
-import { Button, Drawer, Input, message } from 'antd';
+import { Button, Drawer, message } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
@@ -25,7 +24,8 @@ import UpdateForm from './components/UpdateForm';
 const handleAdd = async (fields: UserListItem) => {
   const hide = message.loading('正在添加');
   try {
-    await addRule({ ...fields });
+    await addSysUser({ ...fields });
+    // await addRule({ ...fields });
     hide();
     message.success('Added successfully');
     return true;
@@ -85,13 +85,13 @@ const handleRemove = async (selectedRows: UserListItem[]) => {
 };
 
 const requestList = async (params?: any) => {
-  const result = await getSysUserList(params)
+  const result = await getSysUserList(params);
   return {
     data: result.data.list,
     total: result.data.count,
-    success: result.code === 200
-  }
-}
+    success: result.code === 200,
+  };
+};
 
 const TableList: React.FC = () => {
   /**
@@ -339,6 +339,7 @@ const TableList: React.FC = () => {
         }}
       >
         <ProFormText
+          label="用户名"
           rules={[
             {
               required: true,
@@ -351,9 +352,56 @@ const TableList: React.FC = () => {
             },
           ]}
           width="md"
-          name="name"
+          name="username"
         />
-        <ProFormTextArea width="md" name="desc" />
+        <ProFormText
+          label="昵称"
+          rules={[
+            {
+              required: true,
+              message: (
+                <FormattedMessage
+                  id="pages.searchTable.ruleName"
+                  defaultMessage="Rule name is required"
+                />
+              ),
+            },
+          ]}
+          width="md"
+          name="nickname"
+        />
+        <ProFormText
+          label="手机号"
+          rules={[
+            {
+              required: true,
+              message: (
+                <FormattedMessage
+                  id="pages.searchTable.ruleName"
+                  defaultMessage="Rule name is required"
+                />
+              ),
+            },
+          ]}
+          width="md"
+          name="phone"
+        />
+        <ProFormText
+          label="邮箱"
+          rules={[
+            {
+              required: true,
+              message: (
+                <FormattedMessage
+                  id="pages.searchTable.ruleName"
+                  defaultMessage="Rule name is required"
+                />
+              ),
+            },
+          ]}
+          width="md"
+          name="email"
+        />
       </ModalForm>
       <UpdateForm
         onSubmit={async (value) => {
