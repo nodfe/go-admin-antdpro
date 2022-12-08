@@ -5,8 +5,19 @@ declare namespace API {
   type BaseResponse<T> = {
     msg?: string;
     code: number;
-    data: T;
-  }
+    data?: T;
+  };
+
+  type BasePageResponse<T> = {
+    msg?: string;
+    code: number;
+    data?: {
+      count: number;
+      pageIndex: number;
+      pageSize: number;
+      list: T[];
+    };
+  };
   type CurrentUser = {
     name?: string;
     avatar?: string;
@@ -46,7 +57,7 @@ declare namespace API {
     expire?: string;
     success?: boolean;
     token: string;
-  }
+  };
 
   type PageParams = {
     current?: number;
