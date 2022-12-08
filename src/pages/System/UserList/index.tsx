@@ -1,8 +1,12 @@
 import { removeRule, updateRule } from '@/services/ant-design-pro/api';
+import { fetchDepartmentTree } from '@/services/ant-design-pro/system/department';
+import { fetchRoleList } from '@/services/ant-design-pro/system/role';
 import { addSysUser, getSysUserList } from '@/services/ant-design-pro/system/user';
 import type { UserListItem } from '@/types';
+import type { DepartmentTreeItem, RoleListItem } from '@/types/system';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
+import { ProFormSelect, ProFormTreeSelect } from '@ant-design/pro-components';
 import {
   FooterToolbar,
   ModalForm,
@@ -12,7 +16,7 @@ import {
 } from '@ant-design/pro-components';
 import { FormattedMessage, useIntl } from '@umijs/max';
 import { Button, Drawer, message } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
 
@@ -110,6 +114,10 @@ const TableList: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<UserListItem>();
   const [selectedRowsState, setSelectedRows] = useState<UserListItem[]>([]);
+
+  const [roleList, setRoleList] = useState<RoleListItem[]>([]);
+
+  // const [departmentTree, setDepartmentTree] = useState<DepartmentTreeItem[]>([]);
 
   /**
    * @en-US International configuration
@@ -248,6 +256,14 @@ const TableList: React.FC = () => {
       ],
     },
   ];
+
+  useEffect(() => {
+    fetchRoleList().then((res: API.BasePageResponse<RoleListItem>) => {
+      if (undefined !== res.data) {
+        setRoleList(res.data.list);
+      }
+    });
+  }, []);
 
   return (
     <div>
@@ -402,6 +418,49 @@ const TableList: React.FC = () => {
           width="md"
           name="email"
         />
+        <ProFormTreeSelect
+          name="deptId"
+          label="部门"
+          fieldProps={{
+            fieldNames: {
+              label: 'deptName',
+              value: 'deptId',
+            },
+          }}
+          request={(params) => {
+            return new Promise((resolve) => {
+              fetchDepartmentTree(params).then((res: API.BaseResponse<DepartmentTreeItem[]>) => {
+                if (undefined !== res.data) {
+                  resolve(res.data);
+                }
+              });
+            });
+          }}
+        />
+        <ProFormSelect<RoleListItem>
+          options={roleList}
+          name="roleId"
+          label="角色"
+          fieldProps={{
+            fieldNames: {
+              label: 'roleName',
+              value: 'roleId',
+            },
+          }}
+        />
+        {/* 还有些配置需要读取系统配置 */}
+        {/*
+          比如
+          this.getDicts('sys_normal_disable').then(response => {
+            this.statusOptions = response.data
+          })
+          this.getDicts('sys_user_sex').then(response => {
+            this.sexOptions = response.data
+          })
+          this.getConfigKey('sys_user_initPassword').then(response => {
+            this.initPassword = response.data.configValue
+          })
+        */}
       </ModalForm>
       <UpdateForm
         onSubmit={async (value) => {
