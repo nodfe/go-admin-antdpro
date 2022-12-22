@@ -1,9 +1,10 @@
-import { removeRule, updateRule } from '@/services/ant-design-pro/api';
+import { removeRule } from '@/services/ant-design-pro/api';
 import { fetchDepartmentTree } from '@/services/ant-design-pro/system/department';
 import { fetchRoleList } from '@/services/ant-design-pro/system/role';
-import { addSysUser, getSysUserList } from '@/services/ant-design-pro/system/user';
+import { getDicts } from '@/services/ant-design-pro/system/system';
+import { addSysUser, getSysUserList, updateSysUser } from '@/services/ant-design-pro/system/user';
 import type { UserListItem } from '@/types';
-import type { DepartmentTreeItem, RoleListItem } from '@/types/system';
+import type { DepartmentTreeItem, RoleListItem, StatusOptions } from '@/types/system';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import { ProFormSelect, ProFormTreeSelect } from '@ant-design/pro-components';
@@ -17,7 +18,6 @@ import {
 import { FormattedMessage, useIntl } from '@umijs/max';
 import { Button, Drawer, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
 
 /**
@@ -29,7 +29,6 @@ const handleAdd = async (fields: UserListItem) => {
   const hide = message.loading('正在添加');
   try {
     await addSysUser({ ...fields });
-    // await addRule({ ...fields });
     hide();
     message.success('Added successfully');
     return true;
@@ -46,14 +45,10 @@ const handleAdd = async (fields: UserListItem) => {
  *
  * @param fields
  */
-const handleUpdate = async (fields: FormValueType) => {
+const handleUpdate = async (fields: UserListItem) => {
   const hide = message.loading('Configuring');
   try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
+    await updateSysUser(String(fields.userId), { ...fields });
     hide();
 
     message.success('Configuration is successful');
@@ -116,6 +111,7 @@ const TableList: React.FC = () => {
   const [selectedRowsState, setSelectedRows] = useState<UserListItem[]>([]);
 
   const [roleList, setRoleList] = useState<RoleListItem[]>([]);
+  const [statusOptions, setStatusOptions] = useState<StatusOptions[]>([]);
 
   // const [departmentTree, setDepartmentTree] = useState<DepartmentTreeItem[]>([]);
 
@@ -148,88 +144,6 @@ const TableList: React.FC = () => {
       dataIndex: 'nickName',
       valueType: 'textarea',
     },
-    // {
-    //   title: (
-    //     <FormattedMessage
-    //       id="pages.searchTable.titleCallNo"
-    //       defaultMessage="Number of service calls"
-    //     />
-    //   ),
-    //   dataIndex: 'callNo',
-    //   sorter: true,
-    //   hideInForm: true,
-    //   renderText: (val: string) =>
-    //     `${val}${intl.formatMessage({
-    //       id: 'pages.searchTable.tenThousand',
-    //       defaultMessage: ' 万 ',
-    //     })}`,
-    // },
-    // {
-    //   title: <FormattedMessage id="pages.searchTable.titleStatus" defaultMessage="Status" />,
-    //   dataIndex: 'status',
-    //   hideInForm: true,
-    //   valueEnum: {
-    //     0: {
-    //       text: (
-    //         <FormattedMessage
-    //           id="pages.searchTable.nameStatus.default"
-    //           defaultMessage="Shut down"
-    //         />
-    //       ),
-    //       status: 'Default',
-    //     },
-    //     1: {
-    //       text: (
-    //         <FormattedMessage id="pages.searchTable.nameStatus.running" defaultMessage="Running" />
-    //       ),
-    //       status: 'Processing',
-    //     },
-    //     2: {
-    //       text: (
-    //         <FormattedMessage id="pages.searchTable.nameStatus.online" defaultMessage="Online" />
-    //       ),
-    //       status: 'Success',
-    //     },
-    //     3: {
-    //       text: (
-    //         <FormattedMessage
-    //           id="pages.searchTable.nameStatus.abnormal"
-    //           defaultMessage="Abnormal"
-    //         />
-    //       ),
-    //       status: 'Error',
-    //     },
-    //   },
-    // },
-    // {
-    //   title: (
-    //     <FormattedMessage
-    //       id="pages.searchTable.titleUpdatedAt"
-    //       defaultMessage="Last scheduled time"
-    //     />
-    //   ),
-    //   sorter: true,
-    //   dataIndex: 'updatedAt',
-    //   valueType: 'dateTime',
-    //   renderFormItem: (item, { defaultRender, ...rest }, form) => {
-    //     const status = form.getFieldValue('status');
-    //     if (`${status}` === '0') {
-    //       return false;
-    //     }
-    //     if (`${status}` === '3') {
-    //       return (
-    //         <Input
-    //           {...rest}
-    //           placeholder={intl.formatMessage({
-    //             id: 'pages.searchTable.exception',
-    //             defaultMessage: 'Please enter the reason for the exception!',
-    //           })}
-    //         />
-    //       );
-    //     }
-    //     return defaultRender(item);
-    //   },
-    // },
     {
       title: <FormattedMessage id="pages.searchTable.titleOption" defaultMessage="Operating" />,
       dataIndex: 'option',
@@ -244,14 +158,9 @@ const TableList: React.FC = () => {
           }}
         >
           编辑
-          {/* <FormattedMessage id="pages.searchTable.config" defaultMessage="Configuration" /> */}
         </a>,
         <a key="subscribeAlert" href="https://procomponents.ant.design/">
           删除
-          {/* <FormattedMessage
-            id="pages.searchTable.subscribeAlert"
-            defaultMessage="Subscribe to alerts"
-          /> */}
         </a>,
       ],
     },
@@ -259,10 +168,19 @@ const TableList: React.FC = () => {
 
   useEffect(() => {
     fetchRoleList().then((res: API.BasePageResponse<RoleListItem>) => {
-      if (undefined !== res.data) {
+      if (res.code === 200 && undefined !== res.data) {
         setRoleList(res.data.list);
       }
     });
+    getDicts('sys_normal_disable')
+      .then((res: API.BaseResponse<StatusOptions[]>) => {
+        if (res.code === 200 && undefined !== res.data) {
+          setStatusOptions(res.data);
+        }
+      })
+      .catch((e) => {
+        console.error('sys_normal_disable error', e);
+      });
   }, []);
 
   return (
@@ -448,6 +366,7 @@ const TableList: React.FC = () => {
             },
           }}
         />
+        <ProFormSelect<StatusOptions> options={statusOptions} name="status" label="状态" />
         {/* 还有些配置需要读取系统配置 */}
         {/*
           比如
