@@ -22,6 +22,11 @@ export interface RoleListItem {
   value: string;
 }
 
+export interface StatusOptions {
+  label: string;
+  value: string;
+}
+
 export interface DepartmentTreeItem {
   deptId: number;
   parentId: number;
